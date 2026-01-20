@@ -39,13 +39,20 @@ const getSheetData = async (category) => {
 
         const rows = await sheet.getRows();
 
-        // Transform rows to plain objects
-        const data = rows.map(row => ({
-            keyword: row.get('keyword') ? row.get('keyword').split(',').map(k => k.trim()) : [],
-            question: row.get('question'),
-            answer: row.get('answer'),
-            active: row.get('active')
-        })).filter(item => item.active === 'TRUE' || item.active === 'true' || item.active === true); // Filter only active rows
+        // แปลงข้อมูลเป็น object
+        const data = rows.map(row => {
+            const activeVal = row.get('active');
+            // Normalize active value to boolean (handle 'TRUE', 'True', 'true')
+            const isActive = String(activeVal).toLowerCase().trim() === 'true';
+
+            return {
+                keyword: row.get('keyword') ? row.get('keyword').split(',').map(k => k.trim()) : [],
+                question: row.get('question'),
+                answer: row.get('answer'),
+                note: row.get('note'),
+                active: isActive
+            };
+        }).filter(item => item.active === true); // กรองเฉพาะแถวที่ active = true
 
         cache.set(cacheKey, data);
         return data;
@@ -57,38 +64,20 @@ const getSheetData = async (category) => {
 };
 
 /**
- * Search for relevant rows based on user query
- * @param {string} category - The sheet/category to search in
- * @param {string} userQuery - The user's input message
- * @returns {Promise<Array>} - Top 5 relevant rows
+ * ค้นหาข้อมูลที่เกี่ยวข้องจากคำถามของผู้ใช้
+ * @param {string} category - หมวดหมู่ที่จะค้นหา
+ * @param {string} userQuery - ข้อความของผู้ใช้
+ * @returns {Promise<Array>} - ข้อมูลที่ตรงที่สุด 5 อันดับแรก
  */
 const searchSheet = async (category, userQuery) => {
     const data = await getSheetData(category);
 
-    // Simple logic: priority to keyword match, then just return the rows.
-    // In a fuller version, we might use vector search or more complex scoring.
-    // Here we strictly follow the Rule-based + AI-based workflow:
-    // 1. If keyword matches, prioritize it.
-
-    const relevantRows = data.filter(row => {
-        // Check if any of the row's keywords appear in the user query
+    // 1. หาด้วย Keyword (แม่นยำสูงสุด)
+    const keywordMatches = data.filter(row => {
         return containsKeyword(userQuery, row.keyword);
     });
 
-    if (relevantRows.length > 0) {
-        // If keyword matches found, return them (up to 5)
-        return relevantRows.slice(0, 5);
-    }
-
-    // If no strict keyword match, we might return top 5 general rows 
-    // BUT the requirement says: "If not found: let Groq create answer".
-    // AND "Pull Top-5 closest rows to reduce token usage".
-    // Without semantic search embedding, "closest" is hard to determine purely by code.
-    // We will return the first 5 rows as context if no keyword match found, 
-    // assuming the Category Classification was accurate enough that this sheet contains relevant info.
-    // OR we can implement a basic text overlap score.
-
-    // Let's implement basic text overlap scoring
+    // 2. หาด้วย Text Overlap (คะแนนความเหมือน)
     const scoredRows = data.map(row => {
         let score = 0;
         const queryWords = userQuery.split(/\s+/);
@@ -101,11 +90,16 @@ const searchSheet = async (category, userQuery) => {
         return { row, score };
     });
 
-    // Sort by score descending
+    // เรียงลำดับจากคะแนนมากไปน้อย
     scoredRows.sort((a, b) => b.score - a.score);
+    const textMatches = scoredRows.map(item => item.row);
 
-    // Return top 5
-    return scoredRows.slice(0, 5).map(item => item.row);
+    // 3. รวมผลลัพธ์ (Keyword มาก่อน ตามด้วย Text Match)
+    // ใช้ Set เพื่อตัดตัวซ้ำ
+    const combinedResults = new Set([...keywordMatches, ...textMatches]);
+
+    // แปลงกลับเป็น Array และตัดเอาแค่ 5 อันดับแรก
+    return Array.from(combinedResults).slice(0, 5);
 };
 
 module.exports = {
