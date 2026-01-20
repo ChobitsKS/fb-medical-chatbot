@@ -20,9 +20,10 @@ const processMessage = async (senderId, messageText) => {
         // แสดงสถานะกำลังพิมพ์ (Visual Feedback)
         await fbService.sendTyping(senderId);
 
-        // 2. แยกหมวดหมู่ (Classify)
-        const category = await aiService.classifyCategory(messageText);
-        console.log(`[Workflow] หมวดหมู่: ${category}`);
+        // 2. แยกหมวดหมู่ (Classify) - ไม่ใช้แล้ว ข้ามไปใช้ 'KnowledgeBase' เลย
+        // const category = await aiService.classifyCategory(messageText);
+        const category = 'KnowledgeBase'; // ชื่อ Sheet ใหม่ที่คุณต้องสร้าง
+        console.log(`[Workflow] ใช้ชีตหลัก: ${category}`);
 
         // 3. ค้นหาข้อมูลจาก Sheet (Retrieval)
         const contextRows = await sheetService.searchSheet(category, messageText);
