@@ -14,7 +14,7 @@ module.exports = {
     },
     groq: {
         apiKey: process.env.GROQ_API_KEY,
-        model: process.env.GROQ_MODEL || 'llama3-70b-8192',
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
     },
     cacheTTL: parseInt(process.env.CACHE_TTL) || 300,
 };
