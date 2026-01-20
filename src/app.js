@@ -45,9 +45,15 @@ app.post('/webhook', (req, res) => {
                 }
 
                 // Handle Echo (Admin replied)
+                // ตรวจสอบว่าเป็นคนตอบจริงๆ หรือไม่ (ถ้าเป็น Bot ตอบ จะมี app_id ติดมาด้วย)
                 if (webhook_event.message && webhook_event.message.is_echo) {
+                    const appId = webhook_event.message.app_id;
                     const recipientId = webhook_event.recipient.id;
-                    workflow.handlePageEcho(recipientId);
+
+                    // ถ้าไม่มี app_id แปลว่าน่าจะเป็นคนตอบผ่าน Page Manager
+                    if (!appId) {
+                        workflow.handlePageEcho(recipientId);
+                    }
                 }
             }
         });
