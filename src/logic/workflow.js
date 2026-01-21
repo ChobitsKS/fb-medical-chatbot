@@ -4,22 +4,6 @@ const fbService = require('../services/fbService');
 const handover = require('./handover');
 
 /**
- * Helper to clean CSV-style escaped JSON string from Google Sheets
- * e.g. "[{""type"":""...""}]" -> [{"type":"..."}]
- */
-const cleanJsonString = (str) => {
-    if (typeof str !== 'string') return str;
-    let cleaned = str.trim();
-    // Use regex to detect if it starts/ends with quotes and contains double quotes
-    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-        cleaned = cleaned.slice(1, -1); // Remove wrapping quotes
-    }
-    // Replace double double-quotes with single double-quote (CSV escaping)
-    cleaned = cleaned.replace(/""/g, '"');
-    return cleaned;
-};
-
-/**
  * ประมวลผลข้อความที่เข้ามา (Main Workflow)
  * @param {string} senderId - PSID ของผู้ใช้
  * @param {string} messageText - ข้อความที่ส่งมา
@@ -36,7 +20,8 @@ const processMessage = async (senderId, messageText) => {
         // แสดงสถานะกำลังพิมพ์ (Visual Feedback)
         await fbService.sendTyping(senderId);
 
-        // 2. ใช้หมวดหมู่ 'KnowledgeBase'
+        // 2. แยกหมวดหมู่ (Classify) - ไม่ใช้แล้ว ข้ามไปใช้ 'KnowledgeBase' เลย
+        // const category = await aiService.classifyCategory(messageText);
         const category = 'KnowledgeBase'; // ชื่อ Sheet ใหม่ที่คุณต้องสร้าง
         console.log(`[Workflow] ใช้ชีตหลัก: ${category}`);
 
@@ -63,7 +48,8 @@ const processMessage = async (senderId, messageText) => {
                     try {
                         let buttons = match.media;
                         if (typeof buttons === 'string') {
-                            buttons = JSON.parse(cleanJsonString(buttons));
+                            // Clean potential wrapping quotes
+                            buttons = JSON.parse(buttons.trim());
                         }
                         console.log(`[Workflow] ส่งเมนูธรรมดา (Button)`);
                         // ใช้ข้อความจาก answer เป็นหัวข้อเมนู
@@ -80,7 +66,7 @@ const processMessage = async (senderId, messageText) => {
                     try {
                         let elements = match.media;
                         if (typeof elements === 'string') {
-                            elements = JSON.parse(cleanJsonString(elements));
+                            elements = JSON.parse(elements.trim());
                         }
                         console.log(`[Workflow] ส่ง Carousel`);
                         await fbService.sendGenericTemplate(senderId, elements);
