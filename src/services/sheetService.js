@@ -74,34 +74,41 @@ const getSheetData = async (category) => {
 const searchSheet = async (category, userQuery) => {
     const data = await getSheetData(category);
 
-    // 1. หาด้วย Keyword (แม่นยำสูงสุด)
-    const keywordMatches = data.filter(row => {
-        return containsKeyword(userQuery, row.keyword);
-    });
+    // Split expanded query into tokens (e.g. "แมพ แผนที่ map" -> ["แมพ", "แผนที่", "map"])
+    const queryTokens = userQuery.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+    console.log(`[Search] Query Tokens:`, queryTokens);
 
-    // 2. หาด้วย Text Overlap (คะแนนความเหมือน)
+    // 2. คำนวณคะแนนความเกี่ยวข้อง (Scoring)
     const scoredRows = data.map(row => {
         let score = 0;
-        const queryWords = userQuery.split(/\s+/);
-        const questionWords = (row.question || '').split(/\s+/);
 
-        queryWords.forEach(qWord => {
-            if (questionWords.some(aWord => aWord.includes(qWord))) score++;
+        // Iterate through ALL tokens from the expanded query
+        queryTokens.forEach(token => {
+            // Check Keywords
+            if (row.keyword && row.keyword.some(k => k && (k.toLowerCase().includes(token) || token.includes(k.toLowerCase())))) {
+                score += 50; // Strong match on keyword
+            }
+
+            // Check Content (Question/Answer) using calculateRelevance
+            const { calculateRelevance } = require('../utils/textUtil');
+            score += calculateRelevance(row.question, token);
+            score += calculateRelevance(row.answer, token);
         });
 
         return { row, score };
     });
 
-    // เรียงลำดับจากคะแนนมากไปน้อย
-    scoredRows.sort((a, b) => b.score - a.score);
-    const textMatches = scoredRows.map(item => item.row);
+    // กรองเอาเฉพาะที่มีคะแนน > 0
+    const relevantRows = scoredRows
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score) // เรียงคะแนนมาก -> น้อย
+        .map(item => item.row);
 
-    // 3. รวมผลลัพธ์ (Keyword มาก่อน ตามด้วย Text Match)
-    // ใช้ Set เพื่อตัดตัวซ้ำ
-    const combinedResults = new Set([...keywordMatches, ...textMatches]);
+    console.log(`[Search] Found ${relevantRows.length} relevant rows for query: "${userQuery}"`);
 
-    // แปลงกลับเป็น Array และตัดเอาแค่ 5 อันดับแรก
-    return Array.from(combinedResults).slice(0, 5);
+    // ตัดมาแค่ 5 อันดับแรก และไม่เอาตัวซ้ำ (Unique)
+    const uniqueRows = [...new Set(relevantRows)];
+    return uniqueRows.slice(0, 5);
 };
 
 /**

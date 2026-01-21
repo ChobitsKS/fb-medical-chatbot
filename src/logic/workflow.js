@@ -107,17 +107,28 @@ const processMessage = async (senderId, messageText) => {
         console.log(`[Workflow] ไม่เจอ Keyword ตรงเป๊ะ -> ใช้ AI ช่วยตอบ`);
 
         // 4.1 ให้ AI ช่วย "ขยายความ" คำค้นหา (AI Query Expansion) 🧠
-        // เช่น "แมพ" -> "แผนที่ map location" เพื่อให้หาเจอใน Sheet
+        // เช่น "แมพ" -> "แผนที่ map location" เพื่อให้หาเจอใน Sheet (1 Credit)
         const expandedQuery = await aiService.expandSearchQuery(messageText);
 
-        // 4.2 ค้นหาด้วยคำที่ขยายแล้ว
+        // 4.2 ค้นหาด้วยคำที่ขยายแล้ว (ระบบค้นหาจะแยกคำให้อัตโนมัติ)
         const contextRows = await sheetService.searchSheet(category, expandedQuery);
         console.log(`[Workflow] พบข้อมูลบริบทที่เกี่ยวข้อง: ${contextRows.length} แถว`);
 
-        const answer = await aiService.generateAnswer(messageText, contextRows);
+        // 4.3 ตอบกลับทันที (ไม่ใช้ AI เรียบเรียงใหม่แล้ว เพื่อประหยัด Token)
+        if (contextRows.length > 0) {
+            // เอาอันที่คะแนนสูงสุด (ตัวแรก) มาตอบเลย
+            const bestMatch = contextRows[0];
+            console.log(`[Workflow] ตอบด้วยข้อมูลจาก Sheet ทันที: "${bestMatch.answer}"`);
+            await fbService.sendMessage(senderId, bestMatch.answer);
 
-        // 5. ส่งคำตอบกลับ
-        await fbService.sendMessage(senderId, answer);
+            // ถ้ามีรูป/Media ติดมาด้วย ก็ส่งตามไปครับ
+            if (bestMatch.type === 'image' && bestMatch.media) {
+                await fbService.sendImage(senderId, bestMatch.media);
+            }
+        } else {
+            console.log(`[Workflow] ไม่พบข้อมูลแม้จะขยายคำแล้ว`);
+            await fbService.sendMessage(senderId, "ขออภัยค่ะ ไม่มีข้อมูลในส่วนนี้ ลองพิมพ์คำถามอื่นดูนะคะ");
+        }
 
     } catch (error) {
         console.error('[Workflow] เกิดข้อผิดพลาด:', error);

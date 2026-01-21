@@ -82,37 +82,7 @@ app.get('/', (req, res) => {
     res.send('Facebook Medical Chatbot is running.');
 });
 
-// Setup Profile Endpoint (Easier method for User)
-app.get('/setup-profile', async (req, res) => {
-    try {
-        const axios = require('axios');
-        const FACEBOOK_API_URL = 'https://graph.facebook.com/v18.0';
-
-        const body = {
-            get_started: { payload: "GET_STARTED" },
-            greeting: [{ locale: "default", text: "ยินดีต้อนรับสู่แชทบอทโรงเรียนแพทย์ฯ 🏥\nกดปุ่ม 'เริ่มใช้งาน' เพื่อพูดคุยกับเราได้เลยค่ะ" }],
-            ice_breakers: [{
-                call_to_actions: [
-                    { question: "หลักสูตร", payload: "หลักสูตร" },
-                    { question: "ค่าเทอม", payload: "ค่าเทอม" },
-                    { question: "ติดต่อเรา", payload: "ติดต่อ" },
-                    { question: "เมนูหลัก", payload: "เมนู" }
-                ],
-                locale: "default"
-            }]
-        };
-
-        await axios.post(
-            `${FACEBOOK_API_URL}/me/messenger_profile?access_token=${config.fb.pageAccessToken}`,
-            body
-        );
-
-        res.send('✅ ตั้งค่า Profile สำเร็จ! (ปุ่มเริ่มใช้งาน, เมนูทักทาย มาแล้ว)');
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('❌ ตั้งค่าไม่สำเร็จ: ' + (error.response ? JSON.stringify(error.response.data) : error.message));
-    }
-});
+// Setup Profile Endpoint removed per user request
 
 // Start server
 app.listen(config.port, () => {
