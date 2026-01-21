@@ -4,6 +4,22 @@ const fbService = require('../services/fbService');
 const handover = require('./handover');
 
 /**
+ * Helper to clean CSV-style escaped JSON string from Google Sheets
+ * e.g. "[{""type"":""...""}]" -> [{"type":"..."}]
+ */
+const cleanJsonString = (str) => {
+    if (typeof str !== 'string') return str;
+    let cleaned = str.trim();
+    // Use regex to detect if it starts/ends with quotes and contains double quotes
+    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+        cleaned = cleaned.slice(1, -1); // Remove wrapping quotes
+    }
+    // Replace double double-quotes with single double-quote (CSV escaping)
+    cleaned = cleaned.replace(/""/g, '"');
+    return cleaned;
+};
+
+/**
  * ประมวลผลข้อความที่เข้ามา (Main Workflow)
  * @param {string} senderId - PSID ของผู้ใช้
  * @param {string} messageText - ข้อความที่ส่งมา
@@ -20,8 +36,7 @@ const processMessage = async (senderId, messageText) => {
         // แสดงสถานะกำลังพิมพ์ (Visual Feedback)
         await fbService.sendTyping(senderId);
 
-        // 2. แยกหมวดหมู่ (Classify) - ไม่ใช้แล้ว ข้ามไปใช้ 'KnowledgeBase' เลย
-        // const category = await aiService.classifyCategory(messageText);
+        // 2. ใช้หมวดหมู่ 'KnowledgeBase'
         const category = 'KnowledgeBase'; // ชื่อ Sheet ใหม่ที่คุณต้องสร้าง
         console.log(`[Workflow] ใช้ชีตหลัก: ${category}`);
 
@@ -32,6 +47,10 @@ const processMessage = async (senderId, messageText) => {
             console.log(`[Workflow] พบ Keyword ตรงเป๊ะจำนวน ${directMatches.length} รายการ! ตอบทันที`);
 
             for (const match of directMatches) {
+                // DEBUG LOGGING
+                console.log(`[Workflow Debug] Processing Match: Type="${match.type}", Answer="${match.answer}"`);
+                console.log(`[Workflow Debug] Raw Media: [${match.media}]`);
+
                 // 1. ส่งข้อความก่อน (ถ้ามีและไม่ใช่ประเภท menu ที่จะส่งข้อความในตัวอยู่แล้ว)
                 if (match.answer && match.answer.trim() !== '-' && match.type !== 'menu') {
                     await fbService.sendMessage(senderId, match.answer);
@@ -48,8 +67,9 @@ const processMessage = async (senderId, messageText) => {
                     try {
                         let buttons = match.media;
                         if (typeof buttons === 'string') {
-                            // Clean potential wrapping quotes
-                            buttons = JSON.parse(buttons.trim());
+                            const cleaned = cleanJsonString(buttons);
+                            console.log(`[Workflow Debug] Cleaned Menu JSON: ${cleaned}`);
+                            buttons = JSON.parse(cleaned);
                         }
                         console.log(`[Workflow] ส่งเมนูธรรมดา (Button)`);
                         // ใช้ข้อความจาก answer เป็นหัวข้อเมนู
@@ -57,7 +77,8 @@ const processMessage = async (senderId, messageText) => {
                         await fbService.sendButtonTemplate(senderId, menuText, buttons);
                     } catch (e) {
                         console.error('[Workflow] Error parsing Menu JSON:', e);
-                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง)");
+                        console.error('[Workflow] Failed String was:', match.media);
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง - กรุณาติดต่อแอดมิน)");
                     }
                 }
 
@@ -66,13 +87,16 @@ const processMessage = async (senderId, messageText) => {
                     try {
                         let elements = match.media;
                         if (typeof elements === 'string') {
-                            elements = JSON.parse(elements.trim());
+                            const cleaned = cleanJsonString(elements);
+                            console.log(`[Workflow Debug] Cleaned Carousel JSON: ${cleaned}`);
+                            elements = JSON.parse(cleaned);
                         }
                         console.log(`[Workflow] ส่ง Carousel`);
                         await fbService.sendGenericTemplate(senderId, elements);
                     } catch (e) {
                         console.error('[Workflow] Error parsing Carousel JSON:', e);
-                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบ Carousel ไม่ถูกต้อง)");
+                        console.error('[Workflow] Failed String was:', match.media);
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบ Carousel ไม่ถูกต้อง - กรุณาติดต่อแอดมิน)");
                     }
                 }
             }
@@ -81,7 +105,13 @@ const processMessage = async (senderId, messageText) => {
 
         // 4. ถ้าไม่เจอ Keyword เป๊ะๆ -> ให้ AI ช่วยตอบ (AI-Based Fallback)
         console.log(`[Workflow] ไม่เจอ Keyword ตรงเป๊ะ -> ใช้ AI ช่วยตอบ`);
-        const contextRows = await sheetService.searchSheet(category, messageText);
+
+        // 4.1 ให้ AI ช่วย "ขยายความ" คำค้นหา (AI Query Expansion) 🧠
+        // เช่น "แมพ" -> "แผนที่ map location" เพื่อให้หาเจอใน Sheet
+        const expandedQuery = await aiService.expandSearchQuery(messageText);
+
+        // 4.2 ค้นหาด้วยคำที่ขยายแล้ว
+        const contextRows = await sheetService.searchSheet(category, expandedQuery);
         console.log(`[Workflow] พบข้อมูลบริบทที่เกี่ยวข้อง: ${contextRows.length} แถว`);
 
         const answer = await aiService.generateAnswer(messageText, contextRows);
