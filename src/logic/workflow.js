@@ -26,12 +26,17 @@ const processMessage = async (senderId, messageText) => {
         console.log(`[Workflow] ใช้ชีตหลัก: ${category}`);
 
         // 3. Rule-Based First: ค้นหา Keyword เป๊ะๆ ก่อน
-        const directMatch = await sheetService.findKeywordMatch(category, messageText);
+        const directMatches = await sheetService.findKeywordMatch(category, messageText);
 
-        if (directMatch) {
-            console.log(`[Workflow] พบ Keyword ตรงเป๊ะ! ตอบทันที (ไม่ใช้ AI)`);
-            // ตอบกลับด้วยคำตอบจาก Sheet โดยตรง
-            await fbService.sendMessage(senderId, directMatch.answer);
+        if (directMatches && directMatches.length > 0) {
+            console.log(`[Workflow] พบ Keyword ตรงเป๊ะจำนวน ${directMatches.length} รายการ! ตอบทันที`);
+
+            // รวมคำตอบจากทุก Keyword ที่เจอ
+            const combinedAnswer = directMatches
+                .map(match => match.answer)
+                .join('\n\n----------------\n\n'); // แยกคำตอบด้วยเส้นขีด หรือเว้นบรรทัด
+
+            await fbService.sendMessage(senderId, combinedAnswer);
             return; // จบการทำงานทันที
         }
 
