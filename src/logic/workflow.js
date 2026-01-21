@@ -34,7 +34,7 @@ const processMessage = async (senderId, messageText) => {
             // รวมคำตอบจากทุก Keyword ที่เจอ
             const combinedAnswer = directMatches
                 .map(match => match.answer)
-                .join('\n\n----------------\n\n'); // แยกคำตอบด้วยเส้นขีด หรือเว้นบรรทัด
+                .join('\n----------------\n'); // แยกคำตอบด้วยเส้นขีด หรือเว้นบรรทัด
 
             await fbService.sendMessage(senderId, combinedAnswer);
             return; // จบการทำงานทันที
