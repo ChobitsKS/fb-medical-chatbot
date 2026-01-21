@@ -44,7 +44,36 @@ const sendTyping = async (recipientId) => {
     }
 };
 
+/**
+ * Send image to user
+ * @param {string} recipientId 
+ * @param {string} imageUrl 
+ */
+const sendImage = async (recipientId, imageUrl) => {
+    try {
+        await axios.post(`${FACEBOOK_API_URL}/me/messages`, {
+            recipient: { id: recipientId },
+            message: {
+                attachment: {
+                    type: "image",
+                    payload: {
+                        url: imageUrl,
+                        is_reusable: true
+                    }
+                },
+                metadata: "bot_reply"
+            },
+            access_token: config.fb.pageAccessToken
+        }, {
+            params: { access_token: config.fb.pageAccessToken }
+        });
+    } catch (error) {
+        console.error('Error sending image to Facebook:', error.response ? error.response.data : error.message);
+    }
+};
+
 module.exports = {
     sendMessage,
-    sendTyping
+    sendTyping,
+    sendImage
 };

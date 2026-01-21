@@ -50,7 +50,9 @@ const getSheetData = async (category) => {
                 question: row.get('question'),
                 answer: row.get('answer'),
                 note: row.get('note'),
-                active: isActive
+                active: isActive,
+                type: row.get('type') || 'text', // Default to text
+                media: row.get('media') || ''
             };
         }).filter(item => item.active === true); // กรองเฉพาะแถวที่ active = true
 
