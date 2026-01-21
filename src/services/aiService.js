@@ -63,7 +63,41 @@ ${contextText}
     }
 };
 
+/**
+ * Expand user query into multiple related keywords for better search
+ * @param {string} userQuery
+ * @returns {Promise<string>}
+ */
+const expandSearchQuery = async (userQuery) => {
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a search query optimizer. Convert the user input into a list of 3-5 relevant Thai/English keywords separated by spaces. Example: "แมพ" -> "แผนที่ map location ที่ตั้ง"'
+                },
+                {
+                    role: 'user',
+                    content: userQuery
+                }
+            ],
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.3,
+            max_tokens: 50,
+        });
+
+        const expanded = completion.choices[0]?.message?.content?.trim();
+        console.log(`[AI Expansion] "${userQuery}" -> "${expanded}"`);
+        return expanded || userQuery;
+
+    } catch (error) {
+        console.error('Error in Query Expansion:', error);
+        return userQuery; // Fallback to original
+    }
+};
+
 module.exports = {
     classifyCategory,
-    generateAnswer
+    generateAnswer,
+    expandSearchQuery
 };
