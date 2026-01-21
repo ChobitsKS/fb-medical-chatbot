@@ -31,12 +31,51 @@ const processMessage = async (senderId, messageText) => {
         if (directMatches && directMatches.length > 0) {
             console.log(`[Workflow] พบ Keyword ตรงเป๊ะจำนวน ${directMatches.length} รายการ! ตอบทันที`);
 
-            // รวมคำตอบจากทุก Keyword ที่เจอ
-            const combinedAnswer = directMatches
-                .map(match => match.answer)
-                .join('\n----------------\n'); // แยกคำตอบด้วยเส้นขีด หรือเว้นบรรทัด
+            for (const match of directMatches) {
+                // 1. ส่งข้อความก่อน (ถ้ามีและไม่ใช่ประเภท menu ที่จะส่งข้อความในตัวอยู่แล้ว)
+                if (match.answer && match.answer.trim() !== '-' && match.type !== 'menu') {
+                    await fbService.sendMessage(senderId, match.answer);
+                }
 
-            await fbService.sendMessage(senderId, combinedAnswer);
+                // 2. ถ้าเป็นรูปภาพ (Image)
+                if (match.type === 'image' && match.media) {
+                    console.log(`[Workflow] ส่งรูปภาพ: ${match.media}`);
+                    await fbService.sendImage(senderId, match.media);
+                }
+
+                // 3. ถ้าเป็นเมนูธรรมดา (Button Template)
+                if (match.type === 'menu' && match.media) {
+                    try {
+                        let buttons = match.media;
+                        if (typeof buttons === 'string') {
+                            // Clean potential wrapping quotes
+                            buttons = JSON.parse(buttons.trim());
+                        }
+                        console.log(`[Workflow] ส่งเมนูธรรมดา (Button)`);
+                        // ใช้ข้อความจาก answer เป็นหัวข้อเมนู
+                        const menuText = match.answer && match.answer.trim() !== '-' ? match.answer : 'กรุณาเลือกหัวข้อ';
+                        await fbService.sendButtonTemplate(senderId, menuText, buttons);
+                    } catch (e) {
+                        console.error('[Workflow] Error parsing Menu JSON:', e);
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง)");
+                    }
+                }
+
+                // 4. ถ้าเป็นเมนูแบบเลื่อน (Carousel)
+                if (match.type === 'carousel' && match.media) {
+                    try {
+                        let elements = match.media;
+                        if (typeof elements === 'string') {
+                            elements = JSON.parse(elements.trim());
+                        }
+                        console.log(`[Workflow] ส่ง Carousel`);
+                        await fbService.sendGenericTemplate(senderId, elements);
+                    } catch (e) {
+                        console.error('[Workflow] Error parsing Carousel JSON:', e);
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบ Carousel ไม่ถูกต้อง)");
+                    }
+                }
+            }
             return; // จบการทำงานทันที
         }
 
