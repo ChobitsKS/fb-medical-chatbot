@@ -143,9 +143,11 @@ const logUnanswered = async (userQuery) => {
         await sheet.addRow([new Date().toLocaleString('th-TH'), userQuery]);
 
         console.log(`[Sheet] Logged unanswered query: "${userQuery}"`);
+        return true; // Success
 
     } catch (error) {
         console.error('[Sheet] Error logging unanswered query:', error);
+        return error.message; // Return error message for debugging
     }
 };
 
