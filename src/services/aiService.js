@@ -78,8 +78,9 @@ Task: Convert the user's input into a list of 5 RELEVANT synonyms or related nou
 Rules:
 1. FOCUS on the "Object" or "Topic" (e.g., "หอใน" -> "หอพัก หอพักนักศึกษา dormitory accommodation ที่พัก").
 2. DO NOT include generic action verbs like "สอบถาม", "ติดต่อ", "Enquire" unless the user specifically asks to contact.
-3. Keep it short and precise.
-4. Output ONLY the space-separated keywords.`
+3. DO NOT force a connection if the query is unrelated to school administration (e.g. "Hungry", "Bored" should NOT -> "Map").
+4. If the query implies a need for location (e.g. "Where to eat"), you MAY include "canteen" or "location", but NOT just "Map".
+5. Output ONLY the space-separated keywords.`
                 },
                 {
                     role: 'user',
