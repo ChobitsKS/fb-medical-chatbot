@@ -130,11 +130,6 @@ const findKeywordMatch = async (category, userQuery) => {
 const logUnanswered = async (userQuery) => {
     try {
         await doc.loadInfo();
-
-        // DEBUG: List all available sheets
-        const sheetTitles = Object.keys(doc.sheetsByTitle);
-        console.log('[Sheet Debug] Available sheets:', sheetTitles);
-
         let sheet = doc.sheetsByTitle['Unanswered'];
 
         // ถ้ายังไม่มี Sheet นี้ ให้สร้างใหม่เลย (Optional)
@@ -144,7 +139,8 @@ const logUnanswered = async (userQuery) => {
             try {
                 sheet = await doc.addSheet({ title: 'Unanswered', headerValues: ['timestamp', 'query'] });
             } catch (createErr) {
-                throw new Error(`Cannot create sheet 'Unanswered'. Permission? Available sheets: ${sheetTitles.join(', ')}`);
+                console.error('Cannot create sheet Unanswered. Permission denied?');
+                return false;
             }
         } else {
             // Check if headers exist
@@ -155,8 +151,7 @@ const logUnanswered = async (userQuery) => {
                     await sheet.setHeaderRow(['timestamp', 'query']);
                 }
             } catch (headerErr) {
-                console.warn('[Sheet] Header check failed (might be empty sheet), proceeding to addRow anyway.', headerErr);
-                // If loadHeaderRow fails (common on empty sheets), we just ignore and try adding the row
+                // Ignore header errors on empty sheet
             }
         }
 
@@ -164,11 +159,11 @@ const logUnanswered = async (userQuery) => {
         await sheet.addRow([new Date().toLocaleString('th-TH'), userQuery]);
 
         console.log(`[Sheet] Logged unanswered query: "${userQuery}"`);
-        return true; // Success
+        return true;
 
     } catch (error) {
         console.error('[Sheet] Error logging unanswered query:', error);
-        return `Error: ${error.message}`; // Return error message for debugging
+        return false;
     }
 };
 
