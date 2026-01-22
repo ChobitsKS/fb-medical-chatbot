@@ -136,6 +136,13 @@ const logUnanswered = async (userQuery) => {
         if (!sheet) {
             console.log('[Sheet] Creating new sheet: Unanswered');
             sheet = await doc.addSheet({ title: 'Unanswered', headerValues: ['timestamp', 'query'] });
+        } else {
+            // Check if headers exist, if not, set them
+            await sheet.loadHeaderRow();
+            if (sheet.headerValues.length === 0) {
+                console.log('[Sheet] Headers missing in Unanswered sheet. Setting default headers.');
+                await sheet.setHeaderRow(['timestamp', 'query']);
+            }
         }
 
         // Use Array-based insertion to be safe against missing headers in manual sheets
