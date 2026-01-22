@@ -138,10 +138,10 @@ const logUnanswered = async (userQuery) => {
             sheet = await doc.addSheet({ title: 'Unanswered', headerValues: ['timestamp', 'query'] });
         }
 
-        await sheet.addRow({
-            timestamp: new Date().toLocaleString('th-TH'),
-            query: userQuery
-        });
+        // Use Array-based insertion to be safe against missing headers in manual sheets
+        // Column A: Date, Column B: Query
+        await sheet.addRow([new Date().toLocaleString('th-TH'), userQuery]);
+
         console.log(`[Sheet] Logged unanswered query: "${userQuery}"`);
 
     } catch (error) {
