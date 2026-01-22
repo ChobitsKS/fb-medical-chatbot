@@ -156,7 +156,8 @@ const logUnanswered = async (userQuery) => {
         }
 
         // Use Array-based insertion
-        await sheet.addRow([new Date().toLocaleString('th-TH'), userQuery]);
+        await sheet.addRow([new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }), // TH
+    userQuery]);
 
         console.log(`[Sheet] Logged unanswered question: "${userQuery}"`);
         return true;
