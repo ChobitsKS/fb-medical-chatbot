@@ -57,8 +57,8 @@ ${contextText}
         return completion.choices[0]?.message?.content?.trim();
 
     } catch (error) {
-        console.error('[Workflow] เกิดข้อผิดพลาด:', error);
-        await fbService.sendMessage(senderId, "ขออภัยค่ะ ไม่มีข้อมูลในส่วนนี้ ฝากข้อความไว้ได้เลยค่ะ (ref.a03)");
+        console.error('Error in AI Generation:', error);
+        return 'ขออภัยค่ะ มีผู้ใช้งานจำนวนมาก ลองถามใหม่อีกสักครู่ค่ะ';
     }
 };
 

@@ -137,7 +137,7 @@ const logUnanswered = async (userQuery) => {
             console.log('[Sheet] Creating new sheet: Unanswered');
             // Try to create it (might fail if permissions are restricted)
             try {
-                sheet = await doc.addSheet({ title: 'Unanswered', headerValues: ['timestamp', 'question'] });
+                sheet = await doc.addSheet({ title: 'Unanswered', headerValues: ['timestamp', 'query'] });
             } catch (createErr) {
                 console.error('Cannot create sheet Unanswered. Permission denied?');
                 return false;
@@ -156,14 +156,13 @@ const logUnanswered = async (userQuery) => {
         }
 
         // Use Array-based insertion
-        await sheet.addRow([new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }), // TH
-    userQuery]);
+        await sheet.addRow([new Date().toLocaleString('th-TH'), userQuery]);
 
-        console.log(`[Sheet] Logged unanswered question: "${userQuery}"`);
+        console.log(`[Sheet] Logged unanswered query: "${userQuery}"`);
         return true;
 
     } catch (error) {
-        console.error('[Sheet] Error logging unanswered question:', error);
+        console.error('[Sheet] Error logging unanswered query:', error);
         return false;
     }
 };

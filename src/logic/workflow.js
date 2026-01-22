@@ -1,18 +1,3 @@
-/**
- * Message Processing Workflow (Rule-based + AI fallback)
- *
- * Flow:
- * 1. ตรวจสอบ Human Handover (Admin mode)
- * 2. Rule-based exact keyword matching from Google Sheets
- * 3. ส่งข้อความ / รูป / เมนู / carousel ตาม type
- * 4. หากไม่พบ keyword → AI-assisted search expansion
- * 5. Fallback เมื่อไม่พบข้อมูล
- *
- * Design Goals:
- * - ตอบเร็วด้วย Rule-based ก่อน (ประหยัด token)
- * - ใช้ AI เฉพาะเมื่อจำเป็น
- * - ป้องกัน bot เงียบหรือไม่ตอบผู้ใช้
- */
 const aiService = require('../services/aiService');
 const sheetService = require('../services/sheetService');
 const fbService = require('../services/fbService');
@@ -53,7 +38,7 @@ const processMessage = async (senderId, messageText) => {
         await fbService.sendTyping(senderId);
 
         // 2. ใช้หมวดหมู่ 'KnowledgeBase'
-        const category = 'KnowledgeBase';
+        const category = 'KnowledgeBase'; // ชื่อ Sheet ใหม่ที่คุณต้องสร้าง
         // console.log(`[Workflow] ใช้ชีตหลัก: ${category}`);
 
         // 3. Rule-Based First: ค้นหา Keyword เป๊ะๆ ก่อน
@@ -94,7 +79,7 @@ const processMessage = async (senderId, messageText) => {
                         contentSent = true;
                     } catch (e) {
                         console.error('[Workflow] Error parsing Menu JSON:', e);
-                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง - กรุณาติดต่อเจ้าหน้าที่)");
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง - กรุณาติดต่อแอดมิน)");
                         contentSent = true; // Error msg IS content
                     }
                 }
@@ -112,7 +97,7 @@ const processMessage = async (senderId, messageText) => {
                         contentSent = true;
                     } catch (e) {
                         console.error('[Workflow] Error parsing Carousel JSON:', e);
-                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบ Carousel ไม่ถูกต้อง - กรุณาติดต่อเจ้าหน้าที่)");
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบ Carousel ไม่ถูกต้อง - กรุณาติดต่อแอดมิน)");
                         contentSent = true;
                     }
                 }
@@ -120,7 +105,7 @@ const processMessage = async (senderId, messageText) => {
 
             if (!contentSent) {
                 console.warn('[Workflow] Match found but NO content sent (empty answer/media?). Sending fallback.');
-                await fbService.sendMessage(senderId, "ขออภัยค่ะ ไม่มีข้อมูลในส่วนนี้ ฝากข้อความไว้ได้เลยค่ะ (ref.a02)");
+                await fbService.sendMessage(senderId, "พบข้อมูลแต่ไม่สามารถแสดงผลได้ (ข้อมูลอาจว่าง) กรุณาติดต่อแอดมินค่ะ");
             }
             return; // จบการทำงานทันที
         }
@@ -149,15 +134,15 @@ const processMessage = async (senderId, messageText) => {
             }
         } else {
             console.log(`[Workflow] ไม่พบข้อมูลแม้จะขยายคำแล้ว -> บันทึก Unanswered Log`);
-            await fbService.sendMessage(senderId, "ขออภัยค่ะ ไม่มีข้อมูลในส่วนนี้ ฝากข้อความไว้ได้เลยค่ะ");
+            await fbService.sendMessage(senderId, "ขออภัยค่ะ ไม่มีข้อมูลในส่วนนี้ ลองพิมพ์คำถามอื่นดูนะคะ");
 
-            // Log ลง Sheet เพื่อให้เจ้าหน้าที่มาตรวจสอบภายหลัง
+            // Log ลง Sheet เพื่อให้แอดมินมาตรวจสอบภายหลัง
             await sheetService.logUnanswered(messageText);
         }
 
     } catch (error) {
         console.error('[Workflow] เกิดข้อผิดพลาด:', error);
-        await fbService.sendMessage(senderId, "ขออภัยค่ะ มีผู้ใช้งานเป็นจำนวนมาก ลองถามใหม่อีกสักครู่ค่ะ");
+        await fbService.sendMessage(senderId, "ขออภัย ระบบขัดข้องเล็กน้อย ทิ้งข้อความไว้ได้เลยนะคะ เดี๋ยวแอดมินมาตอบค่ะ");
     }
 };
 
