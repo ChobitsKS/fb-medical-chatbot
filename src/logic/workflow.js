@@ -33,33 +33,36 @@ const processMessage = async (senderId, messageText) => {
     }
 
     try {
+        console.log(`[Workflow] Processing message: "${messageText}" from ${senderId}`);
         // แสดงสถานะกำลังพิมพ์ (Visual Feedback)
         await fbService.sendTyping(senderId);
 
         // 2. ใช้หมวดหมู่ 'KnowledgeBase'
         const category = 'KnowledgeBase'; // ชื่อ Sheet ใหม่ที่คุณต้องสร้าง
-        console.log(`[Workflow] ใช้ชีตหลัก: ${category}`);
+        // console.log(`[Workflow] ใช้ชีตหลัก: ${category}`);
 
         // 3. Rule-Based First: ค้นหา Keyword เป๊ะๆ ก่อน
         const directMatches = await sheetService.findKeywordMatch(category, messageText);
 
         if (directMatches && directMatches.length > 0) {
             console.log(`[Workflow] พบ Keyword ตรงเป๊ะจำนวน ${directMatches.length} รายการ! ตอบทันที`);
+            let contentSent = false;
 
             for (const match of directMatches) {
                 // DEBUG LOGGING
                 console.log(`[Workflow Debug] Processing Match: Type="${match.type}", Answer="${match.answer}"`);
-                console.log(`[Workflow Debug] Raw Media: [${match.media}]`);
 
-                // 1. ส่งข้อความก่อน (ถ้ามีและไม่ใช่ประเภท menu ที่จะส่งข้อความในตัวอยู่แล้ว)
+                // 1. ส่งข้อความก่อน
                 if (match.answer && match.answer.trim() !== '-' && match.type !== 'menu') {
                     await fbService.sendMessage(senderId, match.answer);
+                    contentSent = true;
                 }
 
                 // 2. ถ้าเป็นรูปภาพ (Image)
                 if (match.type === 'image' && match.media) {
                     console.log(`[Workflow] ส่งรูปภาพ: ${match.media}`);
                     await fbService.sendImage(senderId, match.media);
+                    contentSent = true;
                 }
 
                 // 3. ถ้าเป็นเมนูธรรมดา (Button Template)
@@ -68,17 +71,16 @@ const processMessage = async (senderId, messageText) => {
                         let buttons = match.media;
                         if (typeof buttons === 'string') {
                             const cleaned = cleanJsonString(buttons);
-                            console.log(`[Workflow Debug] Cleaned Menu JSON: ${cleaned}`);
                             buttons = JSON.parse(cleaned);
                         }
                         console.log(`[Workflow] ส่งเมนูธรรมดา (Button)`);
-                        // ใช้ข้อความจาก answer เป็นหัวข้อเมนู
                         const menuText = match.answer && match.answer.trim() !== '-' ? match.answer : 'กรุณาเลือกหัวข้อ';
                         await fbService.sendButtonTemplate(senderId, menuText, buttons);
+                        contentSent = true;
                     } catch (e) {
                         console.error('[Workflow] Error parsing Menu JSON:', e);
-                        console.error('[Workflow] Failed String was:', match.media);
                         await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง - กรุณาติดต่อแอดมิน)");
+                        contentSent = true; // Error msg IS content
                     }
                 }
 
@@ -88,17 +90,22 @@ const processMessage = async (senderId, messageText) => {
                         let elements = match.media;
                         if (typeof elements === 'string') {
                             const cleaned = cleanJsonString(elements);
-                            console.log(`[Workflow Debug] Cleaned Carousel JSON: ${cleaned}`);
                             elements = JSON.parse(cleaned);
                         }
                         console.log(`[Workflow] ส่ง Carousel`);
                         await fbService.sendGenericTemplate(senderId, elements);
+                        contentSent = true;
                     } catch (e) {
                         console.error('[Workflow] Error parsing Carousel JSON:', e);
-                        console.error('[Workflow] Failed String was:', match.media);
                         await fbService.sendMessage(senderId, "(ขออภัย รูปแบบ Carousel ไม่ถูกต้อง - กรุณาติดต่อแอดมิน)");
+                        contentSent = true;
                     }
                 }
+            }
+
+            if (!contentSent) {
+                console.warn('[Workflow] Match found but NO content sent (empty answer/media?). Sending fallback.');
+                await fbService.sendMessage(senderId, "พบข้อมูลแต่ไม่สามารถแสดงผลได้ (ข้อมูลอาจว่าง) กรุณาติดต่อแอดมินค่ะ");
             }
             return; // จบการทำงานทันที
         }
