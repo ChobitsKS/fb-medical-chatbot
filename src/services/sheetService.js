@@ -130,23 +130,37 @@ const findKeywordMatch = async (category, userQuery) => {
 const logUnanswered = async (userQuery) => {
     try {
         await doc.loadInfo();
+
+        // DEBUG: List all available sheets
+        const sheetTitles = Object.keys(doc.sheetsByTitle);
+        console.log('[Sheet Debug] Available sheets:', sheetTitles);
+
         let sheet = doc.sheetsByTitle['Unanswered'];
 
         // ถ้ายังไม่มี Sheet นี้ ให้สร้างใหม่เลย (Optional)
         if (!sheet) {
             console.log('[Sheet] Creating new sheet: Unanswered');
-            sheet = await doc.addSheet({ title: 'Unanswered', headerValues: ['timestamp', 'query'] });
+            // Try to create it (might fail if permissions are restricted)
+            try {
+                sheet = await doc.addSheet({ title: 'Unanswered', headerValues: ['timestamp', 'query'] });
+            } catch (createErr) {
+                throw new Error(`Cannot create sheet 'Unanswered'. Permission? Available sheets: ${sheetTitles.join(', ')}`);
+            }
         } else {
-            // Check if headers exist, if not, set them
-            await sheet.loadHeaderRow();
-            if (sheet.headerValues.length === 0) {
-                console.log('[Sheet] Headers missing in Unanswered sheet. Setting default headers.');
-                await sheet.setHeaderRow(['timestamp', 'query']);
+            // Check if headers exist
+            try {
+                await sheet.loadHeaderRow();
+                if (!sheet.headerValues || sheet.headerValues.length === 0) {
+                    console.log('[Sheet] Headers likely missing. Setting default headers.');
+                    await sheet.setHeaderRow(['timestamp', 'query']);
+                }
+            } catch (headerErr) {
+                console.warn('[Sheet] Header check failed (might be empty sheet), proceeding to addRow anyway.', headerErr);
+                // If loadHeaderRow fails (common on empty sheets), we just ignore and try adding the row
             }
         }
 
-        // Use Array-based insertion to be safe against missing headers in manual sheets
-        // Column A: Date, Column B: Query
+        // Use Array-based insertion
         await sheet.addRow([new Date().toLocaleString('th-TH'), userQuery]);
 
         console.log(`[Sheet] Logged unanswered query: "${userQuery}"`);
@@ -154,7 +168,7 @@ const logUnanswered = async (userQuery) => {
 
     } catch (error) {
         console.error('[Sheet] Error logging unanswered query:', error);
-        return error.message; // Return error message for debugging
+        return `Error: ${error.message}`; // Return error message for debugging
     }
 };
 
