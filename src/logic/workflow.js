@@ -133,8 +133,11 @@ const processMessage = async (senderId, messageText) => {
                 await fbService.sendImage(senderId, bestMatch.media);
             }
         } else {
-            console.log(`[Workflow] ไม่พบข้อมูลแม้จะขยายคำแล้ว`);
+            console.log(`[Workflow] ไม่พบข้อมูลแม้จะขยายคำแล้ว -> บันทึก Unanswered Log`);
             await fbService.sendMessage(senderId, "ขออภัยค่ะ ไม่มีข้อมูลในส่วนนี้ ลองพิมพ์คำถามอื่นดูนะคะ");
+
+            // Log ลง Sheet เพื่อให้แอดมินมาตรวจสอบภายหลัง
+            await sheetService.logUnanswered(messageText);
         }
 
     } catch (error) {
