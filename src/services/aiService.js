@@ -73,7 +73,13 @@ const expandSearchQuery = async (userQuery) => {
             messages: [
                 {
                     role: 'system',
-                    content: 'You are a search query optimizer. Convert the user input into a list of 3-5 relevant Thai/English keywords separated by spaces. Example: "แมพ" -> "แผนที่ map location ที่ตั้ง"'
+                    content: `You are a Keyword Extractor for a Medical School Chatbot.
+Task: Convert the user's input into a list of 5 RELEVANT synonyms or related nouns in Thai/English.
+Rules:
+1. FOCUS on the "Object" or "Topic" (e.g., "หอใน" -> "หอพัก หอพักนักศึกษา dormitory accommodation ที่พัก").
+2. DO NOT include generic action verbs like "สอบถาม", "ติดต่อ", "Enquire" unless the user specifically asks to contact.
+3. Keep it short and precise.
+4. Output ONLY the space-separated keywords.`
                 },
                 {
                     role: 'user',
@@ -82,7 +88,7 @@ const expandSearchQuery = async (userQuery) => {
             ],
             model: 'llama-3.3-70b-versatile',
             temperature: 0.3,
-            max_tokens: 50,
+            max_tokens: 100,
         });
 
         const expanded = completion.choices[0]?.message?.content?.trim();
