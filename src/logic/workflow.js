@@ -137,12 +137,7 @@ const processMessage = async (senderId, messageText) => {
             await fbService.sendMessage(senderId, "ขออภัยค่ะ ไม่มีข้อมูลในส่วนนี้ ลองพิมพ์คำถามอื่นดูนะคะ");
 
             // Log ลง Sheet เพื่อให้แอดมินมาตรวจสอบภายหลัง
-            const logResult = await sheetService.logUnanswered(messageText);
-
-            // DEBUG: Show error to user if logging fails
-            if (logResult !== true) {
-                await fbService.sendMessage(senderId, `(Sheet Save Failed: ${logResult})`);
-            }
+            await sheetService.logUnanswered(messageText);
         }
 
     } catch (error) {
