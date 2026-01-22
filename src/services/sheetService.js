@@ -148,7 +148,7 @@ const logUnanswered = async (userQuery) => {
                 await sheet.loadHeaderRow();
                 if (!sheet.headerValues || sheet.headerValues.length === 0) {
                     console.log('[Sheet] Headers likely missing. Setting default headers.');
-                    await sheet.setHeaderRow(['timestamp', 'query']);
+                    await sheet.setHeaderRow(['timestamp', 'question']);
                 }
             } catch (headerErr) {
                 // Ignore header errors on empty sheet
