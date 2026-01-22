@@ -123,7 +123,34 @@ const findKeywordMatch = async (category, userQuery) => {
     return data.filter(row => containsKeyword(userQuery, row.keyword));
 };
 
+/**
+ * บันทึกคำถามที่ตอบไม่ได้ลงใน Sheet "Unanswered"
+ * @param {string} userQuery 
+ */
+const logUnanswered = async (userQuery) => {
+    try {
+        await doc.loadInfo();
+        let sheet = doc.sheetsByTitle['Unanswered'];
+
+        // ถ้ายังไม่มี Sheet นี้ ให้สร้างใหม่เลย (Optional)
+        if (!sheet) {
+            console.log('[Sheet] Creating new sheet: Unanswered');
+            sheet = await doc.addSheet({ title: 'Unanswered', headerValues: ['timestamp', 'query'] });
+        }
+
+        await sheet.addRow({
+            timestamp: new Date().toLocaleString('th-TH'),
+            query: userQuery
+        });
+        console.log(`[Sheet] Logged unanswered query: "${userQuery}"`);
+
+    } catch (error) {
+        console.error('[Sheet] Error logging unanswered query:', error);
+    }
+};
+
 module.exports = {
     searchSheet,
-    findKeywordMatch
+    findKeywordMatch,
+    logUnanswered
 };
