@@ -79,7 +79,7 @@ const processMessage = async (senderId, messageText) => {
                         contentSent = true;
                     } catch (e) {
                         console.error('[Workflow] Error parsing Menu JSON:', e);
-                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง - กรุณาติดต่อแอดมิน)");
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง - กรุณาติดต่อเจ้าหน้าที่)");
                         contentSent = true; // Error msg IS content
                     }
                 }
@@ -97,7 +97,7 @@ const processMessage = async (senderId, messageText) => {
                         contentSent = true;
                     } catch (e) {
                         console.error('[Workflow] Error parsing Carousel JSON:', e);
-                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบ Carousel ไม่ถูกต้อง - กรุณาติดต่อแอดมิน)");
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบ Carousel ไม่ถูกต้อง - กรุณาติดต่อเจ้าหน้าที่)");
                         contentSent = true;
                     }
                 }
@@ -105,7 +105,7 @@ const processMessage = async (senderId, messageText) => {
 
             if (!contentSent) {
                 console.warn('[Workflow] Match found but NO content sent (empty answer/media?). Sending fallback.');
-                await fbService.sendMessage(senderId, "พบข้อมูลแต่ไม่สามารถแสดงผลได้ (ข้อมูลอาจว่าง) กรุณาติดต่อแอดมินค่ะ");
+                await fbService.sendMessage(senderId, "ขออภัย พบข้อมูลแต่ไม่สามารถแสดงผลได้ - กรุณาติดต่อเจ้าหน้าที่ค่ะ");
             }
             return; // จบการทำงานทันที
         }
@@ -134,7 +134,7 @@ const processMessage = async (senderId, messageText) => {
             }
         } else {
             console.log(`[Workflow] ไม่พบข้อมูลแม้จะขยายคำแล้ว -> บันทึก Unanswered Log`);
-            await fbService.sendMessage(senderId, "ขออภัยค่ะ ไม่มีข้อมูลในส่วนนี้ ลองพิมพ์คำถามอื่นดูนะคะ");
+            await fbService.sendMessage(senderId, "ขออภัย ไม่มีข้อมูลในส่วนนี้ ฝากข้อความไว้ได้เลยค่ะ");
 
             // Log ลง Sheet เพื่อให้แอดมินมาตรวจสอบภายหลัง
             await sheetService.logUnanswered(messageText);
@@ -142,7 +142,7 @@ const processMessage = async (senderId, messageText) => {
 
     } catch (error) {
         console.error('[Workflow] เกิดข้อผิดพลาด:', error);
-        await fbService.sendMessage(senderId, "ขออภัย ระบบขัดข้องเล็กน้อย ทิ้งข้อความไว้ได้เลยนะคะ เดี๋ยวแอดมินมาตอบค่ะ");
+        await fbService.sendMessage(senderId, "ขออภัย ระบบขัดข้องเล็กน้อย ฝากข้อความไว้ได้เลยค่ะ");
     }
 };
 
@@ -164,3 +164,4 @@ module.exports = {
     processMessage,
     handlePageEcho
 };
+
