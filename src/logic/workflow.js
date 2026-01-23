@@ -79,7 +79,7 @@ const processMessage = async (senderId, messageText) => {
                         contentSent = true;
                     } catch (e) {
                         console.error('[Workflow] Error parsing Menu JSON:', e);
-                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง - กรุณาติดต่อเจ้าหน้าที่)");
+                        await fbService.sendMessage(senderId, "(ขออภัย รูปแบบเมนูไม่ถูกต้อง กรุณาติดต่อเจ้าหน้าที่ค่ะ)");
                         contentSent = true; // Error msg IS content
                     }
                 }
@@ -164,4 +164,3 @@ module.exports = {
     processMessage,
     handlePageEcho
 };
-
